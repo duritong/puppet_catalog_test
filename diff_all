@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+
+node = ARGV[0]
+
+puts "ANALYZING node #{node}"
+p26top27 = `puppet catalog diff puppet_catalogs_2.6/#{node}.pson puppet_catalogs_2.7/#{node}.pson`
+p27top3 = `puppet catalog diff puppet_catalogs_2.7/#{node}.pson puppet_catalogs_3/#{node}.pson`
+
+def anaylze_output(out)
+  out_lines = out.split("\n")
+  old_count = out_lines[1].match(/.*: (\d+)/)[1]
+  new_count = out_lines[2].match(/.*: (\d+)/)[1]
+  if old_count != new_count
+    puts "DIFFERENCES: NOK (old: #{old_count} - new: #{new_count})"
+  else
+    puts "DIFFERENCES: OK"
+  end
+end
+
+anaylze_output(p26top27)
+anaylze_output(p27top3)
+t26 = File.read("puppet_catalogs_2.6/#{node}.time").chomp
+t27 = File.read("puppet_catalogs_2.7/#{node}.time").chomp
+t3 = File.read("puppet_catalogs_3/#{node}.time").chomp
+puts "TIME: #{t26} - #{t27} - #{t3}"

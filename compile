@@ -4,9 +4,12 @@ if [ -z $1 ] || [ -z $2 ]; then
   echo "USAGE: $0 <PUPPET_VERSION> <FQDN>"
 fi
 
-[ -f Gemfile.lock ] && rm Gemfile.lock
-cp Gemfile.$1 Gemfile
-bundle > /dev/null
+test -f Gemfile && (diff -Naur Gemfile.$1 Gemfile > /dev/null)
+if [ $? -gt 0 ]; then
+  [ -f Gemfile.lock ] && rm Gemfile.lock
+  cp Gemfile.$1 Gemfile
+fi
+test -f Gemfile.lock ||  bundle > /dev/null
 
 ETCDIR=$(readlink -f `dirname $0`)
 PUPPETDIR=$(readlink -f `dirname $0`/../puppet)
@@ -17,6 +20,7 @@ test -d $CATALOG_DIR || mkdir $CATALOG_DIR
 OUTPUT_FILE=$CATALOG_DIR/$2.out
 CATALOG_FILE=$CATALOG_DIR/$2.pson
 TIME_FILE=$CATALOG_DIR/$2.time
+WARNINGS_FILE=$CATALOG_DIR/$2.warnings
 
 if [ "$1" == "3" ]; then
   COMPILE_OPTIONS=""
@@ -36,7 +40,9 @@ bundle exec puppet master \
   --thin_storeconfigs true \
   --pluginsync true $COMPILE_OPTIONS\
   --trace \
+  --color false \
   --compile $2 > $OUTPUT_FILE
 
-head -n 1 $OUTPUT_FILE | sed 's/.*in \(.*\) seconds.*/\1/' > $TIME_FILE
-tail -n +2 $OUTPUT_FILE > $CATALOG_FILE
+grep -E '^(.*0;36m)?notice: Compiled catalog for ' $OUTPUT_FILE | head -n 1 | sed 's/.*in \(.*\) seconds.*/\1/' > $TIME_FILE
+grep -E '^(.*0;33m)?warning:' $OUTPUT_FILE > $WARNINGS_FILE
+grep -vE '^(.*0;33m)?(notice|warning):' $OUTPUT_FILE > $CATALOG_FILE

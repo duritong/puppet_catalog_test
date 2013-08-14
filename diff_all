@@ -3,6 +3,11 @@
 
 node = ARGV[0]
 
+unless node
+  puts "USAGE: #{$0} <node>"
+  exit 1
+end
+
 puts "ANALYZING node #{node}"
 p26top27 = `puppet catalog diff puppet_catalogs_2.6/#{node}.pson puppet_catalogs_2.7/#{node}.pson`
 p27top3 = `puppet catalog diff puppet_catalogs_2.7/#{node}.pson puppet_catalogs_3/#{node}.pson`
